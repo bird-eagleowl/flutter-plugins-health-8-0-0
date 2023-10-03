@@ -338,6 +338,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     )
 
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        Log.i("test1", "onAttachedToEngine")
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, CHANNEL_NAME)
         channel?.setMethodCallHandler(this)
@@ -351,6 +352,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        Log.i("test1", "onDetachedFromEngine")
         channel = null
         activity = null
         threadPoolExecutor!!.shutdown()
@@ -394,6 +396,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
+        Log.i("test1", "onActivityResult")
         if (requestCode == GOOGLE_FIT_PERMISSIONS_REQUEST_CODE) {
             if (resultCode == Activity.RESULT_OK) {
                 Log.i("FLUTTER_HEALTH", "Access Granted!")
@@ -423,6 +426,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     private fun keyToHealthDataType(type: String): DataType {
+        Log.i("test1", "keyToHealthDataType")
         return when (type) {
             BODY_FAT_PERCENTAGE -> DataType.TYPE_BODY_FAT_PERCENTAGE
             HEIGHT -> DataType.TYPE_HEIGHT
@@ -479,6 +483,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
 
     // / Extracts the (numeric) value from a Health Data Point
     private fun getHealthDataValue(dataPoint: DataPoint, field: Field): Any {
+         Log.i("test1", "getHealthDataValue")
         val value = dataPoint.getValue(field)
         // Conversion is needed because glucose is stored as mmoll in Google Fit;
         // while mgdl is used for glucose in this plugin.
@@ -603,6 +608,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
      * Save a data type in Google Fit
      */
     private fun writeData(call: MethodCall, result: Result) {
+        Log.i("test1", "writeData")
         if (useHealthConnectIfAvailable && healthConnectAvailable) {
             writeHCData(call, result)
             return
@@ -744,6 +750,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
      * Save a Workout session with options for distance and calories expended
      */
     private fun writeWorkoutData(call: MethodCall, result: Result) {
+        Log.i("test1", "writeWorkoutData")
         if (useHealthConnectIfAvailable && healthConnectAvailable) {
             writeWorkoutHCData(call, result)
             return
@@ -877,6 +884,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
      * Get all datapoints of the DataType within the given time range
      */
     private fun getData(call: MethodCall, result: Result) {
+        Log.i("test1", "getData")
         if (useHealthConnectIfAvailable && healthConnectAvailable) {
             getHCData(call, result)
             return
@@ -1200,6 +1208,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     private fun hasPermissions(call: MethodCall, result: Result) {
+         Log.i("test1", "hasPermissions")
         if (useHealthConnectIfAvailable && healthConnectAvailable) {
             hasPermissionsHC(call, result)
             return
@@ -1224,6 +1233,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
      * with the the READ or READ_WRITE permission type.
      */
     private fun requestAuthorization(call: MethodCall, result: Result) {
+         Log.i("test1", "requestAuthorization")
         if (context == null) {
             result.success(false)
             return
@@ -1261,6 +1271,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
      * `disableFit` was used.
      */
     private fun revokePermissions(call: MethodCall, result: Result) {
+        Log.i("test1", "revokePermissions")
         if (useHealthConnectIfAvailable && healthConnectAvailable) {
             result.notImplemented()
             return
@@ -1282,6 +1293,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     private fun getTotalStepsInInterval(call: MethodCall, result: Result) {
+        Log.i("test1", "getTotalStepsInInterval")
         val start = call.argument<Long>("startTime")!!
         val end = call.argument<Long>("endTime")!!
 
@@ -1330,6 +1342,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     private fun getStepsHealthConnect(start: Long, end: Long, result: Result) = scope.launch {
+        Log.i("test1", "getStepsHealthConnect")
         try {
             val startInstant = Instant.ofEpochMilli(start)
             val endInstant = Instant.ofEpochMilli(end)
@@ -1384,6 +1397,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         }
 
     private fun getActivityType(type: String): String {
+        Log.i("test1", "getActivityType")
         return workoutTypeMap[type] ?: FitnessActivities.UNKNOWN
     }
 
@@ -1408,6 +1422,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        Log.i("test1", "onAttachedToActivity")
         if (channel == null) {
             return
         }
@@ -1416,17 +1431,22 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+        Log.i("test1", "onDetachedFromActivityForConfigChanges")
         onDetachedFromActivity()
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        Log.i("test1", "onReattachedToActivityForConfigChanges")
         onAttachedToActivity(binding)
     }
 
     override fun onDetachedFromActivity() {
+        Log.i("test1", "onDetachedFromActivity")
         if (channel == null) {
+            Log.i("test1", "onDetachedFromActivity2")
             return
         }
+        Log.i("test1", "onDetachedFromActivity3")
         activity = null
     }
 
@@ -1437,16 +1457,19 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     var healthConnectStatus = HealthConnectClient.SDK_UNAVAILABLE
 
     fun checkAvailability() {
+        Log.i("test1", "checkAvailability")
         healthConnectStatus = HealthConnectClient.getSdkStatus(context!!)
         healthConnectAvailable = healthConnectStatus == HealthConnectClient.SDK_AVAILABLE
     }
 
     fun useHealthConnectIfAvailable(call: MethodCall, result: Result) {
+        Log.i("test1", "useHealthConnectIfAvailable")
         useHealthConnectIfAvailable = true
         result.success(null)
     }
 
     private fun hasPermissionsHC(call: MethodCall, result: Result) {
+        Log.i("test1", "hasPermissionsHC")
         val args = call.arguments as HashMap<*, *>
         val types = (args["types"] as? ArrayList<*>)?.filterIsInstance<String>()!!
         val permissions = (args["permissions"] as? ArrayList<*>)?.filterIsInstance<Int>()!!
@@ -1497,6 +1520,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     private fun requestAuthorizationHC(call: MethodCall, result: Result) {
+        Log.i("test1", "requestAuthorizationHC")
         val args = call.arguments as HashMap<*, *>
         val types = (args["types"] as? ArrayList<*>)?.filterIsInstance<String>()!!
         val permissions = (args["permissions"] as? ArrayList<*>)?.filterIsInstance<Int>()!!
@@ -1544,6 +1568,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     fun getHCData(call: MethodCall, result: Result) {
+        Log.i("test1", "getHCData")
         val dataType = call.argument<String>("dataTypeKey")!!
         val startTime = Instant.ofEpochMilli(call.argument<Long>("startTime")!!)
         val endTime = Instant.ofEpochMilli(call.argument<Long>("endTime")!!)
@@ -1806,6 +1831,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     fun writeHCData(call: MethodCall, result: Result) {
+        Log.i("test1", "writeHCData")
         val type = call.argument<String>("dataTypeKey")!!
         val startTime = call.argument<Long>("startTime")!!
         val endTime = call.argument<Long>("endTime")!!
@@ -1970,6 +1996,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     fun writeWorkoutHCData(call: MethodCall, result: Result) {
+        Log.i("test1", "writeWorkoutHCData")
         val type = call.argument<String>("activityType")!!
         val startTime = Instant.ofEpochMilli(call.argument<Long>("startTime")!!)
         val endTime = Instant.ofEpochMilli(call.argument<Long>("endTime")!!)
@@ -2030,6 +2057,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     fun writeBloodPressureHC(call: MethodCall, result: Result) {
+        Log.i("test1", "writeBloodPressureHC")
         val systolic = call.argument<Double>("systolic")!!
         val diastolic = call.argument<Double>("diastolic")!!
         val startTime = Instant.ofEpochMilli(call.argument<Long>("startTime")!!)
@@ -2065,6 +2093,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     }
 
     fun deleteHCData(call: MethodCall, result: Result) {
+        Log.i("test1", "deleteHCData")
         val type = call.argument<String>("dataTypeKey")!!
         val startTime = Instant.ofEpochMilli(call.argument<Long>("startTime")!!)
         val endTime = Instant.ofEpochMilli(call.argument<Long>("endTime")!!)
