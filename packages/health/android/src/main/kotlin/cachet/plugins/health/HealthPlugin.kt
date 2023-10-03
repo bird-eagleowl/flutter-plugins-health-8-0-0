@@ -347,8 +347,8 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         checkAvailability()
         if (healthConnectAvailable) {
             healthConnectClient =
-                HealthConnectClient.getOrCreate(flutterPluginBinding.applicationContext)
-        }
+             HealthConnectClient.getOrCreate(flutterPluginBinding.applicationContext)
+        } 
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -1207,8 +1207,14 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         return typesBuilder.build()
     }
 
+    private fun checkSdk(call: MethodCall, result: Result) {
+        Log.i("test1", "checkSdk")
+        result.success(HealthConnectClient.getSdkStatus(context!!))
+    }
+
     private fun hasPermissions(call: MethodCall, result: Result) {
          Log.i("test1", "hasPermissions")
+         
         if (useHealthConnectIfAvailable && healthConnectAvailable) {
             hasPermissionsHC(call, result)
             return
@@ -1218,14 +1224,14 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
             return
         }
 
-        val optionsToRegister = callToHealthTypes(call)
+/*         val optionsToRegister = callToHealthTypes(call)
 
         val isGranted = GoogleSignIn.hasPermissions(
             GoogleSignIn.getLastSignedInAccount(context!!),
             optionsToRegister,
-        )
+        ) 
 
-        result?.success(isGranted)
+        result?.success(isGranted)*/
     }
 
     /**
@@ -1417,6 +1423,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
             "writeWorkoutData" -> writeWorkoutData(call, result)
             "writeBloodPressure" -> writeBloodPressure(call, result)
             "writeBloodOxygen" -> writeBloodOxygen(call, result)
+            "checkSdk" -> checkSdk(call, result)
             else -> result.notImplemented()
         }
     }
@@ -1457,9 +1464,28 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     var healthConnectStatus = HealthConnectClient.SDK_UNAVAILABLE
 
     fun checkAvailability() {
+
+                healthConnectStatus = HealthConnectClient.getSdkStatus(context!!)
+        if (healthConnectStatus == HealthConnectClient.SDK_UNAVAILABLE) {
+            
+            return // SDK 사용 불가능한 경우 조기 반환
+        }
+        if (healthConnectStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) {
+            // 선택적으로 패키지 설치기로 리디렉션하여 제공자를 찾을 수 있습니다. 예를 들어:
+/*             val uriString = "market://details?id=$providerPackageName&url=healthconnect%3A%2F%2Fonboarding"
+                 
+            val intent = Intent(Intent.ACTION_VIEW)
+            intent.`package` = "com.android.vending"
+            intent.data = Uri.parse(uriString)
+            intent.putExtra("overlay", true)
+            intent.putExtra("callerId", context.packageName)
+            context.startActivity(intent) */
+            return
+        }
+        healthConnectAvailable = true
+
         Log.i("test1", "checkAvailability")
-        healthConnectStatus = HealthConnectClient.getSdkStatus(context!!)
-        healthConnectAvailable = healthConnectStatus == HealthConnectClient.SDK_AVAILABLE
+
     }
 
     fun useHealthConnectIfAvailable(call: MethodCall, result: Result) {
