@@ -78,6 +78,10 @@ class HealthFactory {
     });
   }
 
+  Future<int?> checkSdk() async {
+    return await _channel.invokeMethod('checkSdk', {});
+  }
+
   /// Revokes permissions of all types.
   /// Uses `disableFit()` on Google Fit.
   ///
