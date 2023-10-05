@@ -45,6 +45,8 @@ import java.time.*
 import java.time.temporal.ChronoUnit
 import java.util.*
 import java.util.concurrent.*
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.ActivityResultLauncher
 
 
 const val HEALTH_CONNECT_RESULT_CODE = 16969
@@ -74,7 +76,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     private var ACTIVE_ENERGY_BURNED = "ACTIVE_ENERGY_BURNED"
     private var HEART_RATE = "HEART_RATE"
 
-   
+
     override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         Log.i("test1", "onAttachedToEngine")
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -85,8 +87,8 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         checkAvailability()
         if (healthConnectAvailable) {
             healthConnectClient =
-             HealthConnectClient.getOrCreate(flutterPluginBinding.applicationContext)
-        } 
+                HealthConnectClient.getOrCreate(flutterPluginBinding.applicationContext)
+        }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -126,7 +128,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         Log.i("test1", "onActivityResult")
-       
+
         if (requestCode == HEALTH_CONNECT_RESULT_CODE) {
             if (resultCode == Activity.RESULT_OK) {
                 if (data != null) {
@@ -146,40 +148,11 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         return false
     }
 
-    private fun keyToHealthDataType(type: String): DataType {
-        Log.i("test1", "keyToHealthDataType")
-        return when (type) {
-            BODY_FAT_PERCENTAGE -> DataType.TYPE_BODY_FAT_PERCENTAGE
-            HEIGHT -> DataType.TYPE_HEIGHT
-            WEIGHT -> DataType.TYPE_WEIGHT
-            STEPS -> DataType.TYPE_STEP_COUNT_DELTA
-            ACTIVE_ENERGY_BURNED -> DataType.TYPE_CALORIES_EXPENDED
-            HEART_RATE -> DataType.TYPE_HEART_RATE_BPM
-            else -> throw IllegalArgumentException("Unsupported dataType: $type")
-        }
-    }
 
-    private fun getField(type: String): Field {
-        return when (type) {
-            BODY_FAT_PERCENTAGE -> Field.FIELD_PERCENTAGE
-            HEIGHT -> Field.FIELD_HEIGHT
-            WEIGHT -> Field.FIELD_WEIGHT
-            STEPS -> Field.FIELD_STEPS
-            ACTIVE_ENERGY_BURNED -> Field.FIELD_CALORIES
-            HEART_RATE -> Field.FIELD_BPM
-               else -> throw IllegalArgumentException("Unsupported dataType: $type")
-        }
-    }
-
-    private fun isIntField(dataSource: DataSource, unit: Field): Boolean {
-        val dataPoint = DataPoint.builder(dataSource).build()
-        val value = dataPoint.getValue(unit)
-        return value.format == Field.FORMAT_INT32
-    }
 
     // / Extracts the (numeric) value from a Health Data Point
     private fun getHealthDataValue(dataPoint: DataPoint, field: Field): Any {
-         Log.i("test1", "getHealthDataValue")
+        Log.i("test1", "getHealthDataValue")
         val value = dataPoint.getValue(field)
         // Conversion is needed because glucose is stored as mmoll in Google Fit;
         // while mgdl is used for glucose in this plugin.
@@ -192,54 +165,9 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         }
     }
 
-    /**
-     * Delete records of the given type in the time range
-     */
-    private fun delete(call: MethodCall, result: Result) {
-        if (useHealthConnectIfAvailable && healthConnectAvailable) {
-            deleteHCData(call, result)
-            return
-        }
-        if (context == null) {
-            result.success(false)
-            return
-        }
 
-        val type = call.argument<String>("dataTypeKey")!!
-        val startTime = call.argument<Long>("startTime")!!
-        val endTime = call.argument<Long>("endTime")!!
 
-        // Look up data type and unit for the type key
-        val dataType = keyToHealthDataType(type)
-        val field = getField(type)
 
-        val typesBuilder = FitnessOptions.builder()
-        typesBuilder.addDataType(dataType, FitnessOptions.ACCESS_WRITE)
-
-        val dataSource = DataDeleteRequest.Builder()
-            .setTimeInterval(startTime, endTime, TimeUnit.MILLISECONDS)
-            .addDataType(dataType)
-            .deleteAllSessions()
-            .build()
-
-        val fitnessOptions = typesBuilder.build()
-
-        try {
-            val googleSignInAccount =
-                GoogleSignIn.getAccountForExtension(context!!.applicationContext, fitnessOptions)
-            Fitness.getHistoryClient(context!!.applicationContext, googleSignInAccount)
-                .deleteData(dataSource)
-                .addOnSuccessListener {
-                    Log.i("FLUTTER_HEALTH::SUCCESS", "Dataset deleted successfully!")
-                    result.success(true)
-                }
-                .addOnFailureListener(errHandler(result, "There was an error deleting the dataset"))
-        } catch (e3: Exception) {
-            result.success(false)
-        }
-    }
-
-   
     private fun writeData(call: MethodCall, result: Result) {
         Log.i("test1", "writeData")
         if (useHealthConnectIfAvailable && healthConnectAvailable) {
@@ -250,7 +178,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
             result.success(false)
             return
         }
-      
+
     }
 
     /**
@@ -280,12 +208,12 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
                     "date_from" to dataPoint.getStartTime(TimeUnit.MILLISECONDS),
                     "date_to" to dataPoint.getEndTime(TimeUnit.MILLISECONDS),
                     "source_name" to (
-                        dataPoint.originalDataSource.appPackageName
-                            ?: (
-                                dataPoint.originalDataSource.device?.model
-                                    ?: ""
-                                )
-                        ),
+                            dataPoint.originalDataSource.appPackageName
+                                ?: (
+                                        dataPoint.originalDataSource.device?.model
+                                            ?: ""
+                                        )
+                            ),
                     "source_id" to dataPoint.originalDataSource.streamIdentifier,
                 )
             }
@@ -298,15 +226,15 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         Log.w("FLUTTER_HEALTH::ERROR", exception.message ?: "unknown error")
         Log.w("FLUTTER_HEALTH::ERROR", exception.stackTrace.toString())
     }
-    
+
     private fun checkSdk(call: MethodCall, result: Result) {
         Log.i("test1", "checkSdk")
         result.success(HealthConnectClient.getSdkStatus(context!!))
     }
 
     private fun hasPermissions(call: MethodCall, result: Result) {
-         Log.i("test1", "hasPermissions")
-         
+        Log.i("test1", "hasPermissions")
+
         if (useHealthConnectIfAvailable && healthConnectAvailable) {
             hasPermissionsHC(call, result)
             return
@@ -323,7 +251,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
      * with the the READ or READ_WRITE permission type.
      */
     private fun requestAuthorization(call: MethodCall, result: Result) {
-         Log.i("test1", "requestAuthorization")
+        Log.i("test1", "requestAuthorization")
         if (context == null) {
             result.success(false)
             return
@@ -387,7 +315,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         }
     }
 
-   
+
     /**
      *  Handle calls from the MethodChannel
      */
@@ -399,7 +327,6 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
             "revokePermissions" -> revokePermissions(call, result)
             "getData" -> getData(call, result)
             "writeData" -> writeData(call, result)
-            "delete" -> delete(call, result)
             "checkSdk" -> checkSdk(call, result)
             else -> result.notImplemented()
         }
@@ -441,9 +368,9 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
     var healthConnectStatus = HealthConnectClient.SDK_UNAVAILABLE
 
     fun checkAvailability() {
-                healthConnectStatus = HealthConnectClient.getSdkStatus(context!!)
+        healthConnectStatus = HealthConnectClient.getSdkStatus(context!!)
         if (healthConnectStatus == HealthConnectClient.SDK_UNAVAILABLE) {
-            
+
             return // SDK 사용 불가능한 경우 조기 반환
         }
         if (healthConnectStatus == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) {
@@ -482,7 +409,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
                     ),
                 )
             }
-           
+
         }
         scope.launch {
             result.success(
@@ -514,11 +441,11 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
                     ),
                 )
             }
-            
+
         }
-        val contract = PermissionController.createRequestPermissionResultContract()
+         val contract = PermissionController.createRequestPermissionResultContract()
         val intent = contract.createIntent(activity!!, permList.toSet())
-        activity!!.startActivityForResult(intent, HEALTH_CONNECT_RESULT_CODE)
+         activity!!.startActivityForResult(intent, HEALTH_CONNECT_RESULT_CODE)
     }
 
     fun getHCData(call: MethodCall, result: Result) {
@@ -534,11 +461,11 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
                     timeRangeFilter = TimeRangeFilter.between(startTime, endTime),
                 )
                 val response = healthConnectClient.readRecords(request)
-             
-                    for (rec in response.records) {
-                        healthConnectData.addAll(convertRecord(rec, dataType))
-                    }
-                
+
+                for (rec in response.records) {
+                    healthConnectData.addAll(convertRecord(rec, dataType))
+                }
+
             }
             Handler(context!!.mainLooper).run { result.success(healthConnectData) }
         }
@@ -666,25 +593,7 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         }
     }
 
-    fun deleteHCData(call: MethodCall, result: Result) {
-        Log.i("test1", "deleteHCData")
-        val type = call.argument<String>("dataTypeKey")!!
-        val startTime = Instant.ofEpochMilli(call.argument<Long>("startTime")!!)
-        val endTime = Instant.ofEpochMilli(call.argument<Long>("endTime")!!)
-        val classType = MapToHCType[type]!!
 
-        scope.launch {
-            try {
-                healthConnectClient.deleteRecords(
-                    recordType = classType,
-                    timeRangeFilter = TimeRangeFilter.between(startTime, endTime),
-                )
-                result.success(true)
-            } catch (e: Exception) {
-                result.success(false)
-            }
-        }
-    }
 
     val MapToHCType = hashMapOf(
         BODY_FAT_PERCENTAGE to BodyFatRecord::class,
@@ -693,6 +602,6 @@ class HealthPlugin(private var channel: MethodChannel? = null) :
         STEPS to StepsRecord::class,
         ACTIVE_ENERGY_BURNED to ActiveCaloriesBurnedRecord::class,
         HEART_RATE to HeartRateRecord::class,
-       
-    )
+
+        )
 }
